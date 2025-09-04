@@ -322,6 +322,7 @@ class Collection:
     def generate_video(
         self,
         prompt: str,
+        model_name: str = "veo3",
         duration: float = 5,
         callback_url: Optional[str] = None,
     ) -> Video:
@@ -353,6 +354,7 @@ class Collection:
                 "prompt": prompt,
                 "duration": duration,
                 "callback_url": callback_url,
+                "model_name": model_name
             },
         )
         if video_data:
