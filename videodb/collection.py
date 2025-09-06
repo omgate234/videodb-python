@@ -323,6 +323,7 @@ class Collection:
         self,
         prompt: str,
         model_name: str = "veo3",
+        aspect_ratio: str = "16:9",
         duration: float = 5,
         callback_url: Optional[str] = None,
     ) -> Video:
@@ -354,7 +355,8 @@ class Collection:
                 "prompt": prompt,
                 "duration": duration,
                 "callback_url": callback_url,
-                "model_name": model_name
+                "model_name": model_name,
+                "aspect_ratio": aspect_ratio
             },
         )
         if video_data:
