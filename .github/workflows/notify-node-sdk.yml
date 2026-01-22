@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
     paths:
+      - 'videodb/*.py'
       - 'videodb/**/*.py'
       - '!videodb/__about__.py'
       - '!videodb/__init__.py'
@@ -30,13 +31,17 @@ jobs:
 
           # Get changed Python files
           if [[ -n "$BEFORE_SHA" ]]; then
-            FILES=$(git diff --name-only "$BEFORE_SHA" "$AFTER_SHA" -- 'videodb/**/*.py' | grep -v '__about__\|__init__' || true)
+            FILES=$(git diff --name-only "$BEFORE_SHA" "$AFTER_SHA" -- 'videodb/*.py' 'videodb/**/*.py' | grep -v '__about__\|__init__' || true)
           else
             FILES=""
           fi
 
+          # Sanitize commit message - replace newlines with spaces for JSON compatibility
+          COMMIT_MSG=$(echo "${{ github.event.head_commit.message }}" | tr '\n' ' ' | tr '\r' ' ' | sed 's/  */ /g')
+
           echo "before_sha=$BEFORE_SHA" >> $GITHUB_OUTPUT
           echo "after_sha=$AFTER_SHA" >> $GITHUB_OUTPUT
+          echo "commit_msg=$COMMIT_MSG" >> $GITHUB_OUTPUT
           echo "files<<EOF" >> $GITHUB_OUTPUT
           echo "$FILES" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
@@ -55,7 +60,7 @@ jobs:
             {
               "before_sha": "${{ steps.changes.outputs.before_sha }}",
               "after_sha": "${{ steps.changes.outputs.after_sha }}",
-              "commit_message": "${{ github.event.head_commit.message }}",
+              "commit_message": "${{ steps.changes.outputs.commit_msg }}",
               "source_repo": "${{ github.repository }}",
               "changed_files": "${{ steps.changes.outputs.files }}"
             }
