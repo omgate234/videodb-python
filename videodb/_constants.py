@@ -69,6 +69,8 @@ class ApiPath:
     billing = "billing"
     usage = "usage"
     invoices = "invoices"
+    connection = "connection"
+    cancel_subscription = "cancel_subscription"
     scenes = "scenes"
     scene = "scene"
     frame = "frame"

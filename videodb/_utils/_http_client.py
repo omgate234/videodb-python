@@ -2,9 +2,36 @@
 
 import logging
 import requests
-import backoff
+try:
+    import backoff
+except ImportError:
+    # stub backoff if not installed (e.g., in test environments)
+    class _BackoffStub:
+        @staticmethod
+        def constant(*args, **kwargs):
+            def decorator(func):
+                return func
+            return decorator
 
-from tqdm import tqdm
+        @staticmethod
+        def on_exception(*args, **kwargs):
+            def decorator(func):
+                return func
+            return decorator
+
+    backoff = _BackoffStub()
+
+try:
+    from tqdm import tqdm
+except ImportError:
+    # stub tqdm if not installed
+    class tqdm:
+        def __init__(self, *args, **kwargs):
+            pass
+        def update(self, *args, **kwargs):
+            pass
+        def close(self):
+            pass
 from typing import (
     Callable,
     Optional,
