@@ -1,0 +1,61 @@
+name: Notify Node SDK on Python Changes
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'videodb/**/*.py'
+      - '!videodb/__about__.py'
+      - '!videodb/__init__.py'
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Get changed files
+        id: changes
+        run: |
+          BEFORE_SHA="${{ github.event.before }}"
+          AFTER_SHA="${{ github.sha }}"
+
+          # Handle new branch case
+          if [[ "$BEFORE_SHA" == "0000000000000000000000000000000000000000" ]]; then
+            BEFORE_SHA=$(git rev-parse HEAD~1 2>/dev/null || echo "")
+          fi
+
+          # Get changed Python files
+          if [[ -n "$BEFORE_SHA" ]]; then
+            FILES=$(git diff --name-only "$BEFORE_SHA" "$AFTER_SHA" -- 'videodb/**/*.py' | grep -v '__about__\|__init__' || true)
+          else
+            FILES=""
+          fi
+
+          echo "before_sha=$BEFORE_SHA" >> $GITHUB_OUTPUT
+          echo "after_sha=$AFTER_SHA" >> $GITHUB_OUTPUT
+          echo "files<<EOF" >> $GITHUB_OUTPUT
+          echo "$FILES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+          echo "Changed files:"
+          echo "$FILES"
+
+      - name: Trigger Node SDK Generation
+        if: steps.changes.outputs.files != ''
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.SDK_SYNC_PAT }}
+          repository: ${{ github.repository_owner }}/videodb-node
+          event-type: python-updated
+          client-payload: |
+            {
+              "before_sha": "${{ steps.changes.outputs.before_sha }}",
+              "after_sha": "${{ steps.changes.outputs.after_sha }}",
+              "commit_message": "${{ github.event.head_commit.message }}",
+              "source_repo": "${{ github.repository }}",
+              "changed_files": "${{ steps.changes.outputs.files }}"
+            }
