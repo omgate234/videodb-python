@@ -23,6 +23,7 @@ from videodb.meeting import Meeting
 from videodb._upload import (
     upload,
 )
+from videodb.billing_usage import BillingUsage
 
 logger = logging.getLogger(__name__)
 
@@ -152,6 +153,35 @@ class Connection(HttpClient):
         :rtype: list[dict]
         """
         return self.get(path=f"{ApiPath.billing}/{ApiPath.invoices}")
+    
+    def cancel_subscription(
+        self,
+        reason: str,
+        feedback: Optional[str] = None,
+        immediate: bool = False,
+    ) -> dict:
+        """Cancel the current user's subscription after checking usage.
+
+        :param str reason: Reason for cancellation
+        :param str feedback: Optional feedback (default: None)
+        :param bool immediate: Cancel immediately or at end of billing period
+        :return: Cancellation response data
+        :rtype: dict
+        """
+        data = {
+            "reason": reason,
+            "feedback": feedback,
+            "immediate": immediate,
+        }
+        # initiate cancellation
+        response = self.post(
+            path=f"{ApiPath.connection}/{ApiPath.cancel_subscription}",
+            data=data,
+        )
+        # wrap current_usage in BillingUsage if present
+        if isinstance(response.get("current_usage"), dict):
+            response["current_usage"] = BillingUsage(**response.get("current_usage"))
+        return response
 
     def create_event(self, event_prompt: str, label: str):
         """Create an rtstream event.
