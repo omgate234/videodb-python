@@ -147,6 +147,9 @@ jobs:
             exit 0
           fi
 
+          # Clean up temporary files - DO NOT commit these
+          rm -f spec.diff spec_current.yaml
+
           # Create branch
           BRANCH="auto/spec-sync-$(date +%Y%m%d-%H%M%S)"
           git checkout -b "$BRANCH"

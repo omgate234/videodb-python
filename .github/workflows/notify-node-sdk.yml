@@ -29,9 +29,9 @@ jobs:
             BEFORE_SHA=$(git rev-parse HEAD~1 2>/dev/null || echo "")
           fi
 
-          # Get changed Python files
+          # Get changed Python files (comma-separated for JSON compatibility)
           if [[ -n "$BEFORE_SHA" ]]; then
-            FILES=$(git diff --name-only "$BEFORE_SHA" "$AFTER_SHA" -- 'videodb/*.py' 'videodb/**/*.py' | grep -v '__about__\|__init__' || true)
+            FILES=$(git diff --name-only "$BEFORE_SHA" "$AFTER_SHA" -- 'videodb/*.py' 'videodb/**/*.py' | grep -v '__about__\|__init__' | tr '\n' ',' | sed 's/,$//' || true)
           else
             FILES=""
           fi
@@ -42,9 +42,7 @@ jobs:
           echo "before_sha=$BEFORE_SHA" >> $GITHUB_OUTPUT
           echo "after_sha=$AFTER_SHA" >> $GITHUB_OUTPUT
           echo "commit_msg=$COMMIT_MSG" >> $GITHUB_OUTPUT
-          echo "files<<EOF" >> $GITHUB_OUTPUT
-          echo "$FILES" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          echo "files=$FILES" >> $GITHUB_OUTPUT
 
           echo "Changed files:"
           echo "$FILES"
