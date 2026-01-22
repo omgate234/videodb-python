@@ -203,6 +203,18 @@ class Collection:
             path=f"{ApiPath.test_assets}", data=payload
         )
         return TestAsset(self._connection, **ta_data)
+    
+    def delete_test_asset(self, test_asset_id: str) -> None:
+        """Delete the test asset.
+
+        :param str test_asset_id: ID of the test asset to delete
+        :raises InvalidRequestError: If the delete fails
+        :return: None if the delete is successful
+        :rtype: None
+        """
+        return self._connection.delete(
+            path=f"{ApiPath.test_assets}/{test_asset_id}"
+        )
 
     def connect_rtstream(
         self, url: str, name: str, sample_rate: int = None
