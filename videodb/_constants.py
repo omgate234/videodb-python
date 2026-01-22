@@ -93,6 +93,7 @@ class ApiPath:
     record = "record"
     editor = "editor"
     reframe = "reframe"
+    test_assets = "test-assets"
 
 
 class Status:

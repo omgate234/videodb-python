@@ -1,0 +1,148 @@
+diff --git a/openapi.yaml b/openapi.yaml
+index 4564eaa..45a10c8 100644
+--- a/openapi.yaml
++++ b/openapi.yaml
+@@ -53,6 +53,32 @@ components:
+           type: string
+           example: "Operation successful"
+ 
++    TestAsset:
++      type: object
++      properties:
++        id:
++          type: string
++          description: Unique identifier for the test asset
++          example: "ta-xyz789"
++        name:
++          type: string
++          description: Name of the test asset
++          example: "Sample Video"
++        url:
++          type: string
++          format: uri
++          description: URL of the test asset
++          example: "https://example.com/sample.mp4"
++        collection_id:
++          type: string
++          description: Collection ID the test asset belongs to
++          example: "c-abc123"
++        created_at:
++          type: string
++          format: date-time
++          description: When the test asset was created
++          example: "2026-01-22T10:00:00Z"
++
+     AsyncResponse:
+       type: object
+       properties:
+@@ -3167,6 +3193,110 @@ paths:
+               schema:
+                 $ref: '#/components/schemas/Error'
+ 
++  /test-assets:
++    get:
++      summary: List test assets
++      description: Get all test assets in a collection
++      tags:
++        - Collections
++      parameters:
++        - name: collection_id
++          in: query
++          required: true
++          description: The collection ID to filter test assets
++          schema:
++            type: string
++            example: "c-abc123"
++      responses:
++        '200':
++          description: List of test assets
++          content:
++            application/json:
++              schema:
++                type: object
++                properties:
++                  test_assets:
++                    type: array
++                    items:
++                      $ref: '#/components/schemas/TestAsset'
++        '400':
++          description: Missing or invalid collection_id
++          content:
++            application/json:
++              schema:
++                $ref: '#/components/schemas/Error'
++
++    post:
++      summary: Create test asset
++      description: Create a new test asset in a collection
++      tags:
++        - Collections
++      requestBody:
++        required: true
++        content:
++          application/json:
++            schema:
++              type: object
++              required:
++                - name
++                - url
++                - collection_id
++              properties:
++                name:
++                  type: string
++                  description: Name of the test asset
++                  example: "Sample Video"
++                url:
++                  type: string
++                  format: uri
++                  description: URL of the test asset
++                  example: "https://example.com/sample.mp4"
++                collection_id:
++                  type: string
++                  description: Collection ID to add the test asset to
++                  example: "c-abc123"
++      responses:
++        '201':
++          description: Test asset created successfully
++          content:
++            application/json:
++              schema:
++                $ref: '#/components/schemas/TestAsset'
++        '400':
++          description: Invalid input
++          content:
++            application/json:
++              schema:
++                $ref: '#/components/schemas/Error'
++
++  /test-assets/{id}:
++    get:
++      summary: Get test asset
++      description: Get a specific test asset by ID
++      tags:
++        - Collections
++      parameters:
++        - name: id
++          in: path
++          required: true
++          description: The test asset ID
++          schema:
++            type: string
++            example: "ta-xyz789"
++      responses:
++        '200':
++          description: Test asset details
++          content:
++            application/json:
++              schema:
++                $ref: '#/components/schemas/TestAsset'
++        '404':
++          description: Test asset not found
++          content:
++            application/json:
++              schema:
++                $ref: '#/components/schemas/Error'
++
+   /test-error:
+     get:
+       summary: Test error handling

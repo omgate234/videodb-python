@@ -15,6 +15,7 @@ from videodb.image import Image
 from videodb.meeting import Meeting
 from videodb.rtstream import RTStream
 from videodb.search import SearchFactory, SearchResult
+from videodb.test_asset import TestAsset
 
 logger = logging.getLogger(__name__)
 
@@ -165,6 +166,43 @@ class Collection:
         return self._connection.delete(
             path=f"{ApiPath.image}/{image_id}", params={"collection_id": self.id}
         )
+    
+    def get_test_assets(self) -> List[TestAsset]:
+        """Get all test assets in the collection.
+
+        :return: List of :class:`TestAsset <TestAsset>` objects
+        :rtype: List[:class:`videodb.test_asset.TestAsset`]
+        """
+        data = self._connection.get(
+            path=f"{ApiPath.test_assets}", params={"collection_id": self.id}
+        )
+        return [TestAsset(self._connection, **ta) for ta in data.get("test_assets")]
+
+    def get_test_asset(self, test_asset_id: str) -> TestAsset:
+        """Get a test asset by its ID.
+
+        :param str test_asset_id: ID of the test asset
+        :return: :class:`TestAsset <TestAsset>` object
+        :rtype: :class:`videodb.test_asset.TestAsset`
+        """
+        ta_data = self._connection.get(
+            path=f"{ApiPath.test_assets}/{test_asset_id}"
+        )
+        return TestAsset(self._connection, **ta_data)
+
+    def create_test_asset(self, name: str, url: str) -> TestAsset:
+        """Create a new test asset in the collection.
+
+        :param str name: Name of the test asset
+        :param str url: URL of the test asset
+        :return: :class:`TestAsset <TestAsset>` object
+        :rtype: :class:`videodb.test_asset.TestAsset`
+        """
+        payload = {"name": name, "url": url, "collection_id": self.id}
+        ta_data = self._connection.post(
+            path=f"{ApiPath.test_assets}", data=payload
+        )
+        return TestAsset(self._connection, **ta_data)
 
     def connect_rtstream(
         self, url: str, name: str, sample_rate: int = None
