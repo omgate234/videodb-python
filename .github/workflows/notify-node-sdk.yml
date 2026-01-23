@@ -1,8 +1,7 @@
-name: Notify Node SDK on Python Changes
+name: Notify Node SDK on Python Code Changes
 
 on:
   push:
-    branches: [main]
     paths:
       - 'videodb/*.py'
       - 'videodb/**/*.py'
@@ -18,8 +17,8 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Get changed files
-        id: changes
+      - name: Check if spec also changed
+        id: check_spec
         run: |
           BEFORE_SHA="${{ github.event.before }}"
           AFTER_SHA="${{ github.sha }}"
@@ -29,26 +28,53 @@ jobs:
             BEFORE_SHA=$(git rev-parse HEAD~1 2>/dev/null || echo "")
           fi
 
-          # Get changed Python files (comma-separated for JSON compatibility)
+          # Check if openapi.yaml changed in this push
+          if [[ -n "$BEFORE_SHA" ]]; then
+            SPEC_CHANGED=$(git diff --name-only "$BEFORE_SHA" "$AFTER_SHA" -- openapi.yaml | wc -l)
+          else
+            SPEC_CHANGED=0
+          fi
+
+          if [[ "$SPEC_CHANGED" -gt 0 ]]; then
+            echo "spec_changed=true" >> $GITHUB_OUTPUT
+            echo "Spec also changed - skipping (generate-from-spec.yml will handle this)"
+          else
+            echo "spec_changed=false" >> $GITHUB_OUTPUT
+            echo "Only Python code changed - will notify Node SDK"
+          fi
+
+      - name: Get branch and changed files
+        if: steps.check_spec.outputs.spec_changed == 'false'
+        id: info
+        run: |
+          # Get the branch name
+          BRANCH_NAME="${GITHUB_REF#refs/heads/}"
+          echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
+
+          BEFORE_SHA="${{ github.event.before }}"
+          AFTER_SHA="${{ github.sha }}"
+
+          # Handle new branch case
+          if [[ "$BEFORE_SHA" == "0000000000000000000000000000000000000000" ]]; then
+            BEFORE_SHA=$(git rev-parse HEAD~1 2>/dev/null || echo "")
+          fi
+
+          # Get changed Python files (comma-separated for JSON)
           if [[ -n "$BEFORE_SHA" ]]; then
             FILES=$(git diff --name-only "$BEFORE_SHA" "$AFTER_SHA" -- 'videodb/*.py' 'videodb/**/*.py' | grep -v '__about__\|__init__' | tr '\n' ',' | sed 's/,$//' || true)
           else
             FILES=""
           fi
 
-          # Sanitize commit message - replace newlines with spaces for JSON compatibility
-          COMMIT_MSG=$(echo "${{ github.event.head_commit.message }}" | tr '\n' ' ' | tr '\r' ' ' | sed 's/  */ /g')
-
+          echo "changed_files=$FILES" >> $GITHUB_OUTPUT
           echo "before_sha=$BEFORE_SHA" >> $GITHUB_OUTPUT
           echo "after_sha=$AFTER_SHA" >> $GITHUB_OUTPUT
-          echo "commit_msg=$COMMIT_MSG" >> $GITHUB_OUTPUT
-          echo "files=$FILES" >> $GITHUB_OUTPUT
 
-          echo "Changed files:"
-          echo "$FILES"
+          echo "Branch: $BRANCH_NAME"
+          echo "Changed files: $FILES"
 
       - name: Trigger Node SDK Generation
-        if: steps.changes.outputs.files != ''
+        if: steps.check_spec.outputs.spec_changed == 'false' && steps.info.outputs.changed_files != ''
         uses: peter-evans/repository-dispatch@v3
         with:
           token: ${{ secrets.SDK_SYNC_PAT }}
@@ -56,9 +82,10 @@ jobs:
           event-type: python-updated
           client-payload: |
             {
-              "before_sha": "${{ steps.changes.outputs.before_sha }}",
-              "after_sha": "${{ steps.changes.outputs.after_sha }}",
-              "commit_message": "${{ steps.changes.outputs.commit_msg }}",
-              "source_repo": "${{ github.repository }}",
-              "changed_files": "${{ steps.changes.outputs.files }}"
+              "source_branch": "${{ steps.info.outputs.branch_name }}",
+              "target_branch": "${{ steps.info.outputs.branch_name }}",
+              "trigger_type": "code_change",
+              "changed_files": "${{ steps.info.outputs.changed_files }}",
+              "before_sha": "${{ steps.info.outputs.before_sha }}",
+              "after_sha": "${{ steps.info.outputs.after_sha }}"
             }

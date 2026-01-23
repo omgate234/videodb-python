@@ -1,18 +1,12 @@
 name: Generate SDK from OpenAPI Spec
 
 on:
-  repository_dispatch:
-    types: [spec-updated]
+  push:
+    paths:
+      - 'openapi.yaml'
 
   # Manual trigger for testing
   workflow_dispatch:
-    inputs:
-      spec_b64:
-        description: 'Base64-encoded OpenAPI spec'
-        required: true
-      diff_b64:
-        description: 'Base64-encoded diff (optional)'
-        required: false
 
 jobs:
   generate:
@@ -27,27 +21,66 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Extract spec and diff from payload
+      - name: Get branch and diff info
+        id: info
         run: |
-          if [[ "${{ github.event_name }}" == "repository_dispatch" ]]; then
-            SPEC_B64="${{ github.event.client_payload.spec_b64 }}"
-            DIFF_B64="${{ github.event.client_payload.diff_b64 }}"
-          else
-            SPEC_B64="${{ inputs.spec_b64 }}"
-            DIFF_B64="${{ inputs.diff_b64 }}"
+          # Get the branch name this workflow is running on
+          BRANCH_NAME="${GITHUB_REF#refs/heads/}"
+          echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
+
+          # Get commit SHAs for diff
+          BEFORE_SHA="${{ github.event.before }}"
+          AFTER_SHA="${{ github.sha }}"
+
+          # Handle new branch case
+          if [[ "$BEFORE_SHA" == "0000000000000000000000000000000000000000" ]]; then
+            BEFORE_SHA=$(git rev-parse HEAD~1 2>/dev/null || echo "")
           fi
 
-          # Decode and save spec
-          echo "$SPEC_B64" | base64 -d > spec_current.yaml
-          echo "Spec size: $(wc -l < spec_current.yaml) lines"
+          echo "before_sha=$BEFORE_SHA" >> $GITHUB_OUTPUT
+          echo "after_sha=$AFTER_SHA" >> $GITHUB_OUTPUT
 
-          # Decode and save diff
-          if [[ -n "$DIFF_B64" ]]; then
-            echo "$DIFF_B64" | base64 -d > spec.diff
+          # Generate diff for the spec file
+          if [[ -n "$BEFORE_SHA" ]]; then
+            git diff "$BEFORE_SHA" "$AFTER_SHA" -- openapi.yaml > spec.diff || touch spec.diff
           else
             touch spec.diff
           fi
+
           echo "Diff size: $(wc -l < spec.diff) lines"
+          echo "Running on branch: $BRANCH_NAME"
+
+      - name: Fetch prompt and build context
+        run: |
+          # Fetch static prompt from agent-toolkit
+          curl -sL https://raw.githubusercontent.com/video-db/agent-toolkit/main/context/prompts/spec-to-python.txt > static_prompt.txt
+
+          # Build full prompt with dynamic content
+          cat > codex_prompt.md << 'PROMPT_EOF'
+          ## Git Diff of OpenAPI Spec Changes
+
+          The following diff shows what changed in the API specification:
+
+          ```diff
+          PROMPT_EOF
+
+          cat spec.diff >> codex_prompt.md
+
+          cat >> codex_prompt.md << 'PROMPT_EOF'
+          ```
+
+          ## Current OpenAPI Spec
+
+          If you need to reference the full spec for context, it's available at: openapi.yaml
+
+          ---
+
+          PROMPT_EOF
+
+          # Append static instructions
+          cat static_prompt.txt >> codex_prompt.md
+
+          echo "Prompt built successfully"
 
       - name: Run Codex
         uses: openai/codex-action@v1
@@ -55,47 +88,10 @@ jobs:
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
           model: o4-mini
           sandbox: workspace-write
-          prompt: |
-            You are updating the VideoDB Python SDK based on OpenAPI spec changes.
-
-            ## Git Diff of OpenAPI Spec Changes
-
-            The following diff shows what changed in the API specification:
-
-            ```diff
-            $(cat spec.diff)
-            ```
-
-            ## Current OpenAPI Spec
-
-            If you need to reference the full spec for context, it's available at: spec_current.yaml
-
-            ## Your Task
-
-            1. First, read the existing SDK structure in the `videodb/` directory to understand:
-               - How the client is structured (`videodb/_utils/_http_client.py` or similar)
-               - How models/types are defined
-               - Existing patterns for API methods
-
-            2. Based on the diff, implement the necessary SDK changes:
-               - New endpoints = new methods
-               - Modified endpoints = updated methods
-               - New request/response schemas = new classes/types
-
-            3. Follow the existing code patterns exactly. Match:
-               - Import style
-               - Method signatures
-               - Error handling patterns
-               - Docstring format
-
-            ## Important
-
-            - Do NOT modify `__about__.py`, `__init__.py`, or version numbers
-            - Do NOT add type hints if the existing code doesn't use them consistently
-            - Do NOT refactor unrelated code
-            - Only implement what the diff indicates was added/changed
+          prompt-file: codex_prompt.md
 
       - name: Check for changes and create PR
+        id: create_pr
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -106,31 +102,45 @@ jobs:
           # Check if there are changes
           if git diff --quiet && git diff --staged --quiet; then
             echo "No changes generated by Codex"
+            echo "has_changes=false" >> $GITHUB_OUTPUT
             exit 0
           fi
 
-          # Clean up temporary files - DO NOT commit these
-          rm -f spec.diff spec_current.yaml
+          echo "has_changes=true" >> $GITHUB_OUTPUT
 
-          # Create branch
-          BRANCH="auto/spec-sync-$(date +%Y%m%d-%H%M%S)"
-          git checkout -b "$BRANCH"
+          # Clean up temporary files - DO NOT commit these
+          rm -f spec.diff static_prompt.txt codex_prompt.md
+
+          # Get the base branch name
+          BASE_BRANCH="${{ steps.info.outputs.branch_name }}"
+
+          # Create work branch from the current branch
+          WORK_BRANCH="auto/spec-sync-$(date +%Y%m%d-%H%M%S)"
+          git checkout -b "$WORK_BRANCH"
           git add -A
 
           # Commit
           git commit -m "feat: sync with OpenAPI spec changes
 
+          Source branch: ${BASE_BRANCH}
+
           Generated by OpenAI Codex"
 
           # Push
-          git push origin "$BRANCH"
+          git push origin "$WORK_BRANCH"
 
-          # Create PR
+          echo "work_branch=$WORK_BRANCH" >> $GITHUB_OUTPUT
+          echo "base_branch=$BASE_BRANCH" >> $GITHUB_OUTPUT
+
+          # Create PR targeting the original branch
           gh pr create \
+            --base "$BASE_BRANCH" \
             --title "feat: sync with OpenAPI spec" \
             --body "## Summary
 
           Automated SDK update based on OpenAPI spec changes.
+
+          **Base branch**: \`$BASE_BRANCH\`
 
           ## Review Checklist
 
@@ -141,3 +151,17 @@ jobs:
 
           ---
           *Generated by [OpenAI Codex](https://github.com/openai/codex)*"
+
+      - name: Trigger Node SDK Generation
+        if: steps.create_pr.outputs.has_changes == 'true'
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.SDK_SYNC_PAT }}
+          repository: ${{ github.repository_owner }}/videodb-node
+          event-type: python-updated
+          client-payload: |
+            {
+              "source_branch": "${{ steps.create_pr.outputs.work_branch }}",
+              "target_branch": "${{ steps.create_pr.outputs.base_branch }}",
+              "trigger_type": "spec_change"
+            }
