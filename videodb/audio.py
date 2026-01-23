@@ -140,11 +140,15 @@ class Audio:
             }
         return transcript_data
 
-    def delete(self) -> None:
+    def delete(self, force: bool = False) -> None:
         """Delete the audio.
 
         :raises InvalidRequestError: If the delete fails
         :return: None if the delete is successful
         :rtype: None
         """
-        self._connection.delete(f"{ApiPath.audio}/{self.id}")
+        # include optional force flag in request body
+        self._connection.delete(
+            path=f"{ApiPath.audio}/{self.id}",
+            json={"force": force},
+        )
