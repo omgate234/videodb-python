@@ -203,7 +203,27 @@ play_stream(new_stream)
 
 **Delete a video:**
 
-`video.delete()`: Deletes the video.
+```python
+# Deletes a video
+video.delete(force=True)
+```
+Pass `force=True` to confirm deletion; otherwise a `ValueError` is raised.
+
+**Delete an audio:**
+
+```python
+# Deletes an audio
+audio.delete(force=True)
+```
+Pass `force=True` to confirm deletion; otherwise a `ValueError` is raised.
+
+**Delete an image:**
+
+```python
+# Deletes an image
+image.delete(force=True)
+```
+Pass `force=True` to confirm deletion; otherwise a `ValueError` is raised.
 
 Checkout more examples and tutorials 👉 [Build with VideoDB](https://docs.videodb.io/build-with-videodb-35) to explore what you can build with `VideoDB`.
 

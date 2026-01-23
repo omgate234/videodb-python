@@ -41,14 +41,17 @@ class Image:
         )
         return url_data.get("signed_url", None)
 
-    def delete(self) -> None:
+    def delete(self, force: bool) -> None:
         """Delete the image.
 
+        :param bool force: Must be True to confirm deletion
         :raises InvalidRequestError: If the delete fails
         :return: None if the delete is successful
         :rtype: None
         """
-        self._connection.delete(f"{ApiPath.image}/{self.id}")
+        if not force:
+            raise ValueError("Parameter 'force' must be True to confirm deletion.")
+        self._connection.delete(path=f"{ApiPath.image}/{self.id}", json={"force": force})
 
 
 class Frame(Image):
