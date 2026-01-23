@@ -67,7 +67,8 @@ class ApiPath:
     timeline = "timeline"
     delete = "delete"
     billing = "billing"
-    usage = "usage"
+    # Removed 'usage' endpoint as per updated OpenAPI spec
+    # usage = "usage"
     invoices = "invoices"
     scenes = "scenes"
     scene = "scene"
