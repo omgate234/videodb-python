@@ -98,14 +98,18 @@ class Video:
             **kwargs,
         )
 
-    def delete(self) -> None:
+    def delete(self, force: bool) -> None:
         """Delete the video.
 
+        :param bool force: Must be True to confirm deletion
+        :raises ValueError: If force is False
         :raises InvalidRequestError: If the delete fails
         :return: None if the delete is successful
         :rtype: None
         """
-        self._connection.delete(path=f"{ApiPath.video}/{self.id}")
+        if not force:
+            raise ValueError("Parameter 'force' must be True to confirm deletion.")
+        self._connection.delete(path=f"{ApiPath.video}/{self.id}", json={"force": force})
 
     def remove_storage(self) -> None:
         """Remove the video storage.

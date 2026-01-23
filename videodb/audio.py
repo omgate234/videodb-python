@@ -140,11 +140,14 @@ class Audio:
             }
         return transcript_data
 
-    def delete(self) -> None:
+    def delete(self, force: bool) -> None:
         """Delete the audio.
+        :param bool force: Must be True to confirm deletion
 
         :raises InvalidRequestError: If the delete fails
         :return: None if the delete is successful
         :rtype: None
         """
-        self._connection.delete(f"{ApiPath.audio}/{self.id}")
+        if not force:
+            raise ValueError("Parameter 'force' must be True to confirm deletion.")
+        self._connection.delete(path=f"{ApiPath.audio}/{self.id}", json={"force": force})
