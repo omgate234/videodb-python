@@ -91,6 +91,10 @@ class ApiPath:
     record = "record"
     editor = "editor"
     reframe = "reframe"
+    # Voice endpoints
+    voice = "voice"
+    preview = "preview"
+    clone = "clone"
 
 
 class Status:

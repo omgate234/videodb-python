@@ -52,6 +52,7 @@ VideoDB Python SDK provides programmatic access to VideoDB's serverless video in
     - [Generating Thumbnails](#generating-thumbnails)
 - [Working with Collections](#working-with-collections)
     - [Audio and Image Management](#audio-and-image-management)
+    - [Voice Management](#voice-management)
 - [Advanced Features](#advanced-features)
     - [Realtime Video Editor](#realtime-video-editor)
     - [Real-Time Streams (RTStream)](#real-time-streams-rtstream)
@@ -332,7 +333,31 @@ image_url = image.generate_url()
 # Delete media
 audio.delete()
 image.delete()
-```
+```  
+  
+### Voice Management
+```python
+# List available voices (filter optional)
+voices = conn.list_voices(provider="elevenlabs", language="en-US")
+for voice in voices:
+    print(voice)
+
+# Get voice details
+voice = conn.get_voice("voice-12345")
+print(voice.name, voice.preview_url)
+
+# Get voice preview URL
+preview_url = conn.get_voice_preview("voice-12345")
+print(preview_url)
+
+# Clone a new voice
+response = conn.clone_voice(
+    name="My Custom Voice",
+    audio_urls=["https://example.com/sample1.mp3", "https://example.com/sample2.mp3"],
+    description="Professional narrator voice"
+)
+print(response)
+```  
 
 ## Advanced Features
 
