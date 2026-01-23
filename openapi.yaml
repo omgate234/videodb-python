@@ -200,6 +200,36 @@ components:
           type: string
           format: date-time
 
+    Voice:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "voice-12345"
+        name:
+          type: string
+          example: "Emma"
+        provider:
+          type: string
+          enum: [elevenlabs, openai, azure]
+          example: "elevenlabs"
+        language:
+          type: string
+          example: "en-US"
+        gender:
+          type: string
+          enum: [male, female, neutral]
+          example: "female"
+        preview_url:
+          type: string
+          example: "https://assets.videodb.io/voices/preview/emma.mp3"
+        is_cloned:
+          type: boolean
+          example: false
+        created_at:
+          type: string
+          format: date-time
+
     SearchResult:
       type: object
       properties:
@@ -1743,6 +1773,155 @@ paths:
                         type: string
                         example: "https://assets.videodb.io/img/12345.jpg"
 
+  /voice/:
+    get:
+      summary: List available voices
+      description: Get all available voices for text-to-speech generation
+      tags:
+        - Voices
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: provider
+          in: query
+          schema:
+            type: string
+            enum: [elevenlabs, openai, azure]
+          description: Filter by TTS provider
+        - name: language
+          in: query
+          schema:
+            type: string
+          description: Filter by language code (e.g., en-US)
+        - name: gender
+          in: query
+          schema:
+            type: string
+            enum: [male, female, neutral]
+          description: Filter by voice gender
+      responses:
+        '200':
+          description: List of available voices
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      voices:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Voice'
+
+  /voice/{voice_id}:
+    get:
+      summary: Get voice details
+      description: Get details of a specific voice
+      tags:
+        - Voices
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: voice_id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: "^voice-"
+            example: "voice-12345"
+      responses:
+        '200':
+          description: Voice details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Voice'
+
+  /voice/{voice_id}/preview:
+    get:
+      summary: Get voice preview audio
+      description: Get a preview audio sample for the voice
+      tags:
+        - Voices
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: voice_id
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: "^voice-"
+            example: "voice-12345"
+      responses:
+        '200':
+          description: Voice preview URL
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      preview_url:
+                        type: string
+                        example: "https://assets.videodb.io/voices/preview/emma.mp3"
+
+  /voice/clone:
+    post:
+      summary: Clone a voice
+      description: Create a cloned voice from audio samples
+      tags:
+        - Voices
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - audio_urls
+              properties:
+                name:
+                  type: string
+                  description: Name for the cloned voice
+                  example: "My Custom Voice"
+                audio_urls:
+                  type: array
+                  items:
+                    type: string
+                  description: URLs to audio samples for cloning
+                  example: ["https://example.com/sample1.mp3", "https://example.com/sample2.mp3"]
+                description:
+                  type: string
+                  description: Optional description of the voice
+                  example: "Professional narrator voice"
+      responses:
+        '200':
+          description: Voice cloning initiated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AsyncResponse'
+
   /collection/{collection_id}/generate/image/:
     post:
       summary: Generate image using AI
@@ -3131,6 +3310,8 @@ tags:
     description: Audio management operations
   - name: Images
     description: Image management operations
+  - name: Voices
+    description: Voice listing, preview, and cloning for text-to-speech
   - name: Search
     description: Content search and indexing
   - name: AI Generation
