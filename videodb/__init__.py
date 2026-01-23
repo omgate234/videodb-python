@@ -21,7 +21,7 @@ from videodb._constants import (
     VideoConfig,
     AudioConfig,
 )
-from videodb.client import Connection
+import typing  # noqa: F401
 from videodb.exceptions import (
     VideodbError,
     AuthenticationError,
@@ -59,7 +59,7 @@ def connect(
     base_url: Optional[str] = VIDEO_DB_API,
     log_level: Optional[int] = logging.INFO,
     **kwargs,
-) -> Connection:
+) -> "Connection":
     """A client for interacting with a videodb via REST API
 
     :param str api_key: The api key to use for authentication
@@ -77,4 +77,6 @@ def connect(
             "No API key provided. Set an API key either as an environment variable (VIDEO_DB_API_KEY) or pass it as an argument."
         )
 
+    # Import here to avoid top-level dependency on client and its requirements
+    from videodb.client import Connection
     return Connection(api_key, base_url, **kwargs)
