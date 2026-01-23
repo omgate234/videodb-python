@@ -83,7 +83,7 @@ class Collection:
         )
         return Video(self._connection, **video_data)
 
-    def delete_video(self, video_id: str) -> None:
+    def delete_video(self, video_id: str, force: bool = False) -> None:
         """Delete the video.
 
         :param str video_id: The id of the video to be deleted
@@ -91,8 +91,11 @@ class Collection:
         :return: None if the delete is successful
         :rtype: None
         """
+        # include optional force flag in request body
         return self._connection.delete(
-            path=f"{ApiPath.video}/{video_id}", params={"collection_id": self.id}
+            path=f"{ApiPath.video}/{video_id}",
+            params={"collection_id": self.id},
+            json={"force": force},
         )
 
     def get_audios(self) -> List[Audio]:
@@ -119,7 +122,7 @@ class Collection:
         )
         return Audio(self._connection, **audio_data)
 
-    def delete_audio(self, audio_id: str) -> None:
+    def delete_audio(self, audio_id: str, force: bool = False) -> None:
         """Delete the audio.
 
         :param str audio_id: The id of the audio to be deleted
@@ -127,8 +130,11 @@ class Collection:
         :return: None if the delete is successful
         :rtype: None
         """
+        # include optional force flag in request body
         return self._connection.delete(
-            path=f"{ApiPath.audio}/{audio_id}", params={"collection_id": self.id}
+            path=f"{ApiPath.audio}/{audio_id}",
+            params={"collection_id": self.id},
+            json={"force": force},
         )
 
     def get_images(self) -> List[Image]:
@@ -155,7 +161,7 @@ class Collection:
         )
         return Image(self._connection, **image_data)
 
-    def delete_image(self, image_id: str) -> None:
+    def delete_image(self, image_id: str, force: bool = False) -> None:
         """Delete the image.
 
         :param str image_id: The id of the image to be deleted
@@ -163,8 +169,11 @@ class Collection:
         :return: None if the delete is successful
         :rtype: None
         """
+        # include optional force flag in request body
         return self._connection.delete(
-            path=f"{ApiPath.image}/{image_id}", params={"collection_id": self.id}
+            path=f"{ApiPath.image}/{image_id}",
+            params={"collection_id": self.id},
+            json={"force": force},
         )
     
     def get_test_assets(self) -> List[TestAsset]:

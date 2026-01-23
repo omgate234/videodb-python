@@ -98,14 +98,18 @@ class Video:
             **kwargs,
         )
 
-    def delete(self) -> None:
+    def delete(self, force: bool = False) -> None:
         """Delete the video.
 
         :raises InvalidRequestError: If the delete fails
         :return: None if the delete is successful
         :rtype: None
         """
-        self._connection.delete(path=f"{ApiPath.video}/{self.id}")
+        # include optional force flag in request body
+        self._connection.delete(
+            path=f"{ApiPath.video}/{self.id}",
+            json={"force": force}
+        )
 
     def remove_storage(self) -> None:
         """Remove the video storage.

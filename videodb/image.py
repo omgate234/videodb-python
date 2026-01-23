@@ -41,14 +41,18 @@ class Image:
         )
         return url_data.get("signed_url", None)
 
-    def delete(self) -> None:
+    def delete(self, force: bool = False) -> None:
         """Delete the image.
 
         :raises InvalidRequestError: If the delete fails
         :return: None if the delete is successful
         :rtype: None
         """
-        self._connection.delete(f"{ApiPath.image}/{self.id}")
+        # include optional force flag in request body
+        self._connection.delete(
+            path=f"{ApiPath.image}/{self.id}",
+            json={"force": force},
+        )
 
 
 class Frame(Image):
