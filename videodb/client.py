@@ -19,6 +19,7 @@ from videodb.video import Video
 from videodb.audio import Audio
 from videodb.image import Image
 from videodb.meeting import Meeting
+from videodb.voice import Voice
 
 from videodb._upload import (
     upload,
@@ -192,6 +193,53 @@ class Connection(HttpClient):
                 "name": name,
             },
         )
+    def list_voices(
+        self,
+        provider: Optional[str] = None,
+        language: Optional[str] = None,
+        gender: Optional[str] = None,
+    ) -> List[Voice]:
+        """List available voices for text-to-speech generation.
+
+        :param str provider: Filter by TTS provider
+        :param str language: Filter by language code
+        :param str gender: Filter by voice gender
+        :return: List of :class:`Voice <videodb.voice.Voice>` objects
+        :rtype: List[:class:`videodb.voice.Voice`]
+        """
+        params = {}
+        if provider:
+            params["provider"] = provider
+        if language:
+            params["language"] = language
+        if gender:
+            params["gender"] = gender
+        response = self.get(path=f"{ApiPath.voice}", params=params)
+        voices_list = response.get("data", {}).get("voices", [])
+        return [Voice(self, **voice) for voice in voices_list]
+
+    def get_voice(self, voice_id: str) -> Voice:
+        """Get details of a specific voice."""
+        response = self.get(path=f"{ApiPath.voice}/{voice_id}")
+        data = response.get("data", {})
+        return Voice(self, **data)
+
+    def get_voice_preview(self, voice_id: str) -> str:
+        """Get a preview audio sample URL for the voice."""
+        response = self.get(path=f"{ApiPath.voice}/{voice_id}/{ApiPath.preview}")
+        return response.get("data", {}).get("preview_url")
+
+    def clone_voice(
+        self,
+        name: str,
+        audio_urls: List[str],
+        description: Optional[str] = None,
+    ) -> dict:
+        """Create a cloned voice from audio samples."""
+        payload = {"name": name, "audio_urls": audio_urls}
+        if description is not None:
+            payload["description"] = description
+        return self.post(path=f"{ApiPath.voice}/{ApiPath.clone}", data=payload)
 
     def youtube_search(
         self,
