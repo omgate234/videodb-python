@@ -750,6 +750,18 @@ paths:
             type: string
             pattern: "^m-"
             example: "m-12345"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                force:
+                  type: boolean
+                  description: Force delete even if video is referenced elsewhere
+                  default: false
+                  example: true
       responses:
         '200':
           description: Video deleted
@@ -1554,6 +1566,18 @@ paths:
             type: string
             pattern: "^a-"
             example: "a-12345"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                force:
+                  type: boolean
+                  description: Force delete even if audio is referenced elsewhere
+                  default: false
+                  example: true
       responses:
         '200':
           description: Audio deleted
@@ -1682,6 +1706,18 @@ paths:
             type: string
             pattern: "^img-"
             example: "img-12345"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                force:
+                  type: boolean
+                  description: Force delete even if image is referenced elsewhere
+                  default: false
+                  example: true
       responses:
         '200':
           description: Image deleted
