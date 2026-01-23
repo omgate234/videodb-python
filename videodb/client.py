@@ -137,13 +137,6 @@ class Connection(HttpClient):
             collection_data.get("is_public", False),
         )
 
-    def check_usage(self) -> dict:
-        """Check the usage.
-
-        :return: Usage data
-        :rtype: dict
-        """
-        return self.get(path=f"{ApiPath.billing}/{ApiPath.usage}")
 
     def get_invoices(self) -> List[dict]:
         """Get a list of all invoices.
