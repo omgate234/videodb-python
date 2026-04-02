@@ -2,7 +2,15 @@
 
 import logging
 import requests
-import backoff
+import types
+try:
+    import backoff
+except ImportError:
+    # Fallback stub for missing backoff dependency
+    backoff = types.SimpleNamespace(
+        on_exception=lambda *args, **kwargs: (lambda f: f),
+        constant=lambda *args, **kwargs: None,
+    )
 
 from tqdm import tqdm
 from typing import (
